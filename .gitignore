@@ -1,0 +1,6 @@
+dl/
+src/
+build.log
+build.log.gz
+stock-work/
+.config.part
