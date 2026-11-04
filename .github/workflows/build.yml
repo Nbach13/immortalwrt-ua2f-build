@@ -16,6 +16,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/powershell /usr/lib/mono /opt/hostedtoolcache /usr/local/.cache 2>/dev/null || true
+          sudo apt-get clean 2>/dev/null || true
+          df -h /
+
       - name: Install build dependencies
         run: |
           sudo apt-get update
@@ -28,15 +34,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: src/dl
-          key: dl-${{ github.run_id }}
-          restore-keys: dl-
+          key: dl-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: dl-${{ github.ref_name }}-
 
       - name: Cache build_dir
         uses: actions/cache@v4
         with:
           path: src/build_dir
-          key: build-${{ github.run_id }}
-          restore-keys: build-
+          key: build-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: build-${{ github.ref_name }}-
 
       - name: Build firmware
         run: bash build.sh
