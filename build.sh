@@ -65,14 +65,17 @@ fi
 make defconfig >/dev/null
 grep -q "CONFIG_TARGET_mediatek_filogic_DEVICE_oray_x1-pro=y" .config || { echo "ERROR: device oray_x1-pro not in .config"; exit 1; }
 echo "device enabled in .config"
+free_mb=$(df -m / | awk 'NR==2{print $4}')
+echo "free disk MB: $free_mb"
+if [ "$free_mb" -lt 6000 ]; then echo "ERROR: not enough free disk"; exit 1; fi
 
 echo "== [6/7] building (this takes 2-5 h) =="
 df -h / | tail -1 | tee ../df-before.txt
 # heartbeat: small line to Actions log every 5 min so the run is provably alive
 ( for i in $(seq 1 200); do echo "HEARTBEAT $(date -u +%FT%TZ)"; sleep 300; done ) &
 HB_PID=$!
-make -j"$JOBS" 2>&1 | tee ../build.log || true
-MAKE_RC="${PIPESTATUS[0]}"
+make -j"$JOBS" 2>&1
+MAKE_RC="$?"
 kill "$HB_PID" 2>/dev/null || true
 df -h / | tail -1 | tee ../df-after.txt
 if [ "$MAKE_RC" -ne 0 ]; then
