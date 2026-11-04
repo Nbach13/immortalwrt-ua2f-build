@@ -53,8 +53,13 @@ if [ -f "$STOCK_BIN" ]; then
   fi
   cd "$ROOT"
 fi
-cd src
+# robust: return to the source tree regardless of where we are
+cd "$ROOT/src"
 if [ -f ../.config.part ]; then
+  cat ../.config.part >> .config
+elif [ -f ../config/status.txt ]; then
+  echo "  using pre-extracted stock package list (config/status.txt)"
+  python3 ../gen-config.py ../config/status.txt > ../.config.part || echo "  WARN: gen-config failed"
   cat ../.config.part >> .config
 fi
 make defconfig >/dev/null
