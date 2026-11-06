@@ -1,16 +1,24 @@
 #!/bin/sh
-# Oray X1 Pro 定制默认值:中文界面 + Argon 主题 + WAN 接口兜底
-uci -q set luci.main.lang=zh_cn
-uci -q set luci.main.mediaurlbase=/luci-static/argon
+# Oray X1 Pro 定制默认值
+# 语言:新版 LuCI 语言码为 zh_Hans,兼容旧 zh-cn
+if [ -d /usr/lib/lua/luci/i18n ]; then
+  if [ -f /usr/lib/lua/luci/i18n/base.zh_Hans.lmo ]; then
+    uci set luci.main.lang=zh_Hans
+  elif [ -f /usr/lib/lua/luci/i18n/base.zh-cn.lmo ]; then
+    uci set luci.main.lang=zh_cn
+  fi
+fi
+uci set luci.main.mediaurlbase=/luci-static/argon
 uci commit luci
 
+# WAN 接口佳底(设备全新状态时创建)
 if ! uci -q show network.wan >/dev/null 2>&1; then
-  uci -q set network.wan=interface
-  uci -q set network.wan.proto=dhcp
-  uci -q set network.wan.device=eth1
-  uci -q set network.wan6=interface
-  uci -q set network.wan6.device=eth1
-  uci -q set network.wan6.proto=dhcpv6
+  uci set network.wan=interface
+  uci set network.wan.proto=dhcp
+  uci set network.wan.device=eth1
+  uci set network.wan6=interface
+  uci set network.wan6.device=eth1
+  uci set network.wan6.proto=dhcpv6
   uci commit network
 fi
 exit 0
