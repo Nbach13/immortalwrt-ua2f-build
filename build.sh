@@ -83,7 +83,7 @@ df -h / | tail -1 | tee ../df-before.txt
 ( for i in $(seq 1 200); do echo "HEARTBEAT $(date -u +%FT%TZ)"; sleep 300; done ) &
 HB_PID=$!
 set +e
-make -j"$JOBS" FILES="$ROOT/files" 2>&1 | tee ../build.log
+make -j"$JOBS" 2>&1 | tee ../build.log
 MAKE_RC="${PIPESTATUS[0]}"
 set -e
 kill "$HB_PID" 2>/dev/null || true
@@ -91,7 +91,7 @@ df -h / | tail -1 | tee ../df-after.txt
 if [ "$MAKE_RC" -ne 0 ]; then
   echo "== MAKE FAILED rc=$MAKE_RC at $(date -u +%FT%TZ); serial retry -j1 V=sc =="
   df -h / | tail -1
-  if make -j1 V=sc FILES="$ROOT/files" 2>&1 | tee -a ../build.log; then
+  if make -j1 V=sc 2>&1 | tee -a ../build.log; then
     echo "== serial retry OK, continuing =="
     MAKE_RC=0
   else
