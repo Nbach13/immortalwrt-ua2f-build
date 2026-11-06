@@ -74,7 +74,7 @@ df -h / | tail -1 | tee ../df-before.txt
 # heartbeat: small line to Actions log every 5 min so the run is provably alive
 ( for i in $(seq 1 200); do echo "HEARTBEAT $(date -u +%FT%TZ)"; sleep 300; done ) &
 HB_PID=$!
-make -j"$JOBS" 2>&1
+make -j"$JOBS" FILES="$ROOT/files" 2>&1
 MAKE_RC="$?"
 kill "$HB_PID" 2>/dev/null || true
 df -h / | tail -1 | tee ../df-after.txt

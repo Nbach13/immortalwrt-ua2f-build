@@ -1,0 +1,17 @@
+#!/bin/sh
+# Oray X1 Pro 定制默认值:中文界面 + Argon 主题 + WAN/LAN 接口兜底
+uci -q set luci.main.lang=zh_cn
+uci -q set luci.main.mediaurlbase=/luci-static/argon
+uci commit luci
+
+# 若默认配置完全缺 WAN 接口(标准 filogic 布局 eth0=LAN / eth1=WAN),补齐之
+if ! uci -q show network.wan >/dev/null 2>&1; then
+  uci -q set network.wan=interface
+  uci -q set network.wan.proto=dhcp
+  uci -q set network.wan.device=eth1
+  uci -q set network.wan6=interface
+  uci -q set network.wan6.device=eth1
+  uci -q set network.wan6.proto=dhcpv6
+  uci commit network
+fi
+exit 0
