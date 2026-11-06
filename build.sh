@@ -8,17 +8,25 @@ export FORCE_UNSAFE_CONFIGURE=1
 
 STOCK_BIN="${STOCK_BIN:-$ROOT/stock/stock.bin}"
 
-echo "== [1/7] obtaining ImmortalWrt source (master) =="
+echo "== [1/7] obtaining ImmortalWrt source (pinned) =="
+PIN="89f1ef18c888f841633f19f92655ee4b7f7716a4"
 if [ ! -d src/.git ]; then
   git init -q src
   cd src
   git remote add origin https://github.com/immortalwrt/immortalwrt.git
-  git fetch -q --depth 1 origin master
-  git checkout -q --detach FETCH_HEAD
+  git fetch -q --depth 1 origin "$PIN"
+  git checkout -q --detach "$PIN"
   cd "$ROOT"
 fi
 cd src
-echo "Using immortalwrt master @ $(git rev-parse HEAD)"
+if ! git cat-file -e "$PIN^{commit}" 2>/dev/null; then
+  echo "  fetching pinned commit $PIN"
+  git fetch -q --depth 1 origin "$PIN" || echo "  WARN: pin fetch failed"
+fi
+if git cat-file -e "$PIN^{commit}" 2>/dev/null; then
+  git checkout -q --detach "$PIN"
+fi
+echo "Using immortalwrt @ $(git rev-parse HEAD) (pinned for cache reuse)"
 
 echo "== [2/7] applying device + kernel patches =="
 cp -f ../overlay/target/linux/mediatek/dts/*.dts target/linux/mediatek/dts/
@@ -74,15 +82,25 @@ df -h / | tail -1 | tee ../df-before.txt
 # heartbeat: small line to Actions log every 5 min so the run is provably alive
 ( for i in $(seq 1 200); do echo "HEARTBEAT $(date -u +%FT%TZ)"; sleep 300; done ) &
 HB_PID=$!
-make -j"$JOBS" FILES="$ROOT/files" 2>&1
-MAKE_RC="$?"
+set +e
+make -j"$JOBS" FILES="$ROOT/files" 2>&1 | tee ../build.log
+MAKE_RC="${PIPESTATUS[0]}"
+set -e
 kill "$HB_PID" 2>/dev/null || true
 df -h / | tail -1 | tee ../df-after.txt
 if [ "$MAKE_RC" -ne 0 ]; then
-  echo "MAKE FAILED rc=$MAKE_RC — last 120 log lines:"
-  tail -n 120 ../build.log
-  exit 1
+  echo "== MAKE FAILED rc=$MAKE_RC at $(date -u +%FT%TZ); serial retry -j1 V=sc =="
+  df -h / | tail -1
+  if make -j1 V=sc FILES="$ROOT/files" 2>&1 | tee -a ../build.log; then
+    echo "== serial retry OK, continuing =="
+    MAKE_RC=0
+  else
+    echo "== SERIAL RETRY FAILED — last 200 log lines: =="
+    tail -n 200 ../build.log
+    exit 1
+  fi
 fi
+gzip -9 -c ../build.log > ../build.log.gz 2>/dev/null || true
 
 echo "== [7/7] collecting output =="
 cd "$ROOT"
