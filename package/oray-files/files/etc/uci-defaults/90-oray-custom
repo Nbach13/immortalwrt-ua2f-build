@@ -2,9 +2,11 @@
 # Oray X1 Pro 定制默认值
 # 语言:新版 LuCI 语言码为 zh_Hans,兼容旧 zh-cn
 if [ -d /usr/lib/lua/luci/i18n ]; then
-  if [ -f /usr/lib/lua/luci/i18n/base.zh_Hans.lmo ]; then
+  if [ -f /usr/lib/lua/luci/i18n/base.zh-cn.lmo ]; then
+    uci set luci.main.lang=zh-cn
+  elif [ -f /usr/lib/lua/luci/i18n/base.zh_Hans.lmo ]; then
     uci set luci.main.lang=zh_Hans
-  elif [ -f /usr/lib/lua/luci/i18n/base.zh-cn.lmo ]; then
+  elif [ -f /usr/lib/lua/luci/i18n/base.zh_cn.lmo ]; then
     uci set luci.main.lang=zh_cn
   fi
 fi
