@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build ImmortalWrt (mediatek/filogic) + UA2F for the Oray X1 Pro (oray_x1-pro).
+# Build ImmortalWrt (mediatek/filogic) + UA3F for the Oray X1 Pro (oray_x1-pro).
 set -euo pipefail
 cd "$(dirname "$0")"
 ROOT="$PWD"
@@ -42,16 +42,24 @@ rm -rf package/oray-files
 cp -r ../package/oray-files package/oray-files
 echo "  oray-files injected: $(ls package/oray-files)"
 
-echo "== [3/7] adding UA2F package (Zxilly/UA2F) =="
-rm -rf package/UA2F
-git clone -q --depth 1 https://github.com/Zxilly/UA2F.git package/UA2F
+echo "== [3/7] adding UA3F package (SunBK201/UA3F) =="
+rm -rf package/ua3f
+git clone -q --depth 1 https://github.com/SunBK201/UA3F.git package/ua3f
+# UA3F 仓库的包在 openwrt/ 子目录, Makefile 用 ../go.mod 引用父目录 Go 源码。
+# 重组: openwrt 包内容 + Go 源码合并到 package/ua3f/ 顶层, 便于 buildroot 一层扫描
+mkdir -p package/ua3f-tmp
+cp -a package/ua3f/openwrt/. package/ua3f-tmp/
+cp -a package/ua3f/go.mod package/ua3f/go.sum package/ua3f/main.go package/ua3f/cmd package/ua3f/internal package/ua3f-tmp/
+rm -rf package/ua3f && mv package/ua3f-tmp package/ua3f
+sed -i 's|\.\./go\.mod|./go.mod|g; s|\.\./go\.sum|./go.sum|g; s|\.\./main\.go|./main.go|g; s|\.\./cmd|./cmd|g; s|\.\./internal|./internal|g' package/ua3f/Makefile
+echo "  ua3f package files: $(ls package/ua3f | tr '\n' ' ')";
 
 echo "== [4/7] feeds =="
 ./scripts/feeds update -a >/dev/null
 ./scripts/feeds install -a >/dev/null
 
 echo "== [5/7] generating .config =="
-cp ../config/ua2f.seed .config
+cp ../config/ua3f.seed .config
 rm -f ../.config.part
 if [ -f "$STOCK_BIN" ]; then
   echo "  extracting stock firmware package list from $STOCK_BIN"
@@ -77,12 +85,12 @@ elif [ -f ../config/status.txt ]; then
 fi
 make defconfig >/dev/null
 echo "== CONFIG STATE (post-defconfig) =="
-grep -E '^CONFIG_PACKAGE_(oray-files|luci-i18n|luci-app-ua2f|luci-theme-argon|ua2f)' .config || echo "  (none of our markers selected)"
+grep -E '^CONFIG_PACKAGE_(oray-files|luci-i18n|luci-app-ua3f|luci-theme-argon|ua3f)' .config || echo "  (none of our markers selected)"
 echo "== luci feed: luci-base po langs =="
 ls feeds/luci/modules/luci-base/po 2>/dev/null | tr '\n' ' ' || echo "  (no luci-base po dir)"
 echo ""
-echo "== luci feed: ua2f/argon apps =="
-ls feeds/luci/applications 2>/dev/null | grep -iE 'ua2f|argon' || echo "  (none)"
+echo "== luci feed: ua3f/argon apps =="
+ls feeds/luci/applications 2>/dev/null | grep -iE 'ua3f|argon' || echo "  (none)"
 echo "== luci feed head =="
 git -C feeds/luci rev-parse --short HEAD 2>/dev/null || echo "  (luci feed not a git clone)"
 grep -q "CONFIG_TARGET_mediatek_filogic_DEVICE_oray_x1-pro=y" .config || { echo "ERROR: device oray_x1-pro not in .config"; exit 1; }
@@ -123,7 +131,7 @@ cp -v src/bin/targets/mediatek/filogic/*oray_x1-pro* artifacts/ 2>/dev/null || t
 cp -v src/bin/targets/mediatek/filogic/sha256sums artifacts/ 2>/dev/null || true
 cp -v src/.config artifacts/config.txt 2>/dev/null || true
 cp -v src/feeds.lock artifacts/feeds.lock 2>/dev/null || true
-pkgbin="$(find src/bin/packages -name "ua2f_*.ipk" 2>/dev/null | head -1)"
+pkgbin="$(find src/bin/packages -name "ua3f_*.ipk" 2>/dev/null | head -1)"
 if [ -n "$pkgbin" ]; then cp -v "$pkgbin" artifacts/; fi
 gzip -9 -c build.log > build.log.gz 2>/dev/null || true
 echo "DONE. artifacts:"
