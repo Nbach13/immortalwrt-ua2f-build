@@ -1,11 +1,11 @@
-name: Build ImmortalWrt + UA2F (oray_x1-pro)
+name: Build ImmortalWrt + UA3F (oray_x1-pro)
 on:
   push:
     branches: [ master, main ]
   workflow_dispatch:
 
 concurrency:
-  group: build-ua2f
+  group: build-ua3f
   cancel-in-progress: false
 
 jobs:
@@ -52,7 +52,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: immortalwrt-ua2f-oray_x1-pro
+          name: immortalwrt-ua3f-oray_x1-pro
           path: artifacts/
           retention-days: 30
           if-no-files-found: error
