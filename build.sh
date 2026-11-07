@@ -37,6 +37,11 @@ if [ -n "$GCFG" ] && ! grep -q NETFILTER_NETLINK_GLUE_CT "$GCFG"; then
   echo "appended CONFIG_NETFILTER_NETLINK_GLUE_CT=y to $GCFG"
 fi
 
+echo "== [2b/7] injecting oray-files package into build tree =="
+rm -rf package/oray-files
+cp -r ../package/oray-files package/oray-files
+echo "  oray-files injected: $(ls package/oray-files)"
+
 echo "== [3/7] adding UA2F package (Zxilly/UA2F) =="
 rm -rf package/UA2F
 git clone -q --depth 1 https://github.com/Zxilly/UA2F.git package/UA2F
@@ -71,6 +76,15 @@ elif [ -f ../config/status.txt ]; then
   cat ../.config.part >> .config
 fi
 make defconfig >/dev/null
+echo "== CONFIG STATE (post-defconfig) =="
+grep -E '^CONFIG_PACKAGE_(oray-files|luci-i18n|luci-app-ua2f|luci-theme-argon|ua2f)' .config || echo "  (none of our markers selected)"
+echo "== luci feed: luci-base po langs =="
+ls feeds/luci/modules/luci-base/po 2>/dev/null | tr '\n' ' ' || echo "  (no luci-base po dir)"
+echo ""
+echo "== luci feed: ua2f/argon apps =="
+ls feeds/luci/applications 2>/dev/null | grep -iE 'ua2f|argon' || echo "  (none)"
+echo "== luci feed head =="
+git -C feeds/luci rev-parse --short HEAD 2>/dev/null || echo "  (luci feed not a git clone)"
 grep -q "CONFIG_TARGET_mediatek_filogic_DEVICE_oray_x1-pro=y" .config || { echo "ERROR: device oray_x1-pro not in .config"; exit 1; }
 echo "device enabled in .config"
 free_mb=$(df -m / | awk 'NR==2{print $4}')
@@ -107,6 +121,8 @@ cd "$ROOT"
 mkdir -p artifacts
 cp -v src/bin/targets/mediatek/filogic/*oray_x1-pro* artifacts/ 2>/dev/null || true
 cp -v src/bin/targets/mediatek/filogic/sha256sums artifacts/ 2>/dev/null || true
+cp -v src/.config artifacts/config.txt 2>/dev/null || true
+cp -v src/feeds.lock artifacts/feeds.lock 2>/dev/null || true
 pkgbin="$(find src/bin/packages -name "ua2f_*.ipk" 2>/dev/null | head -1)"
 if [ -n "$pkgbin" ]; then cp -v "$pkgbin" artifacts/; fi
 gzip -9 -c build.log > build.log.gz 2>/dev/null || true
