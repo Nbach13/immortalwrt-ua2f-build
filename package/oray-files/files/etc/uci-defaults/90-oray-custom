@@ -21,4 +21,18 @@ if ! uci -q show network.wan >/dev/null 2>&1; then
   uci set network.wan6.proto=dhcpv6
   uci commit network
 fi
+
+# 防火墙默认放行 (保留 NAT, 不停止 fw4 服务)
+uci set firewall.@defaults[0].input='ACCEPT'
+uci set firewall.@defaults[0].output='ACCEPT'
+uci set firewall.@defaults[0].forward='ACCEPT'
+uci commit firewall
+
+# ua3f: 默认启用 TPROXY 透明代理, 监听 0.0.0.0:1080, 开机自启
+uci set ua3f.enabled.enabled='1'
+uci set ua3f.main.server_mode='TPROXY'
+uci set ua3f.main.port='1080'
+uci set ua3f.main.bind='0.0.0.0'
+uci commit ua3f
+/etc/init.d/ua3f enable
 exit 0
